@@ -12,6 +12,25 @@ update_golang() {
     fi
 }
 
+# 修复 feeds/packages/lang/python/python3/Makefile 中缺少 libffi 的构建依赖。
+fix_python3_libffi_build_dep() {
+    local makefile_path="$BUILD_DIR/feeds/packages/lang/python/python3/Makefile"
+
+    if [ ! -f "$makefile_path" ]; then
+        echo "错误：Python3 Makefile 不存在：$makefile_path" >&2
+        return 1
+    fi
+
+    if ! grep -qE '^PKG_BUILD_DEPENDS[^=]*=' "$makefile_path"; then
+        echo "错误：Python3 Makefile 中没有 PKG_BUILD_DEPENDS" >&2
+        return 1
+    fi
+
+    if ! grep -Eq '^PKG_BUILD_DEPENDS[^=]*=.*(^|[[:space:]])libffi([[:space:]]|$)' "$makefile_path"; then
+        sed -i '/^PKG_BUILD_DEPENDS[^=]*=/ s/$/ libffi/' "$makefile_path"
+    fi
+}
+
 
 check_default_settings() {
     local settings_dir="$BUILD_DIR/package/emortal/default-settings"
