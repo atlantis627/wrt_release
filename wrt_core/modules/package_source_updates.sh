@@ -37,24 +37,56 @@ check_default_settings() {
 
 
 add_ax6600_led() {
-    local athena_led_dir="$BUILD_DIR/package/emortal/luci-app-athena-led"
-    local repo_url="https://github.com/NONGFAH/luci-app-athena-led.git"
+    local repo_url="https://github.com/guangyin53222/JDC-AX6600-Athena-LED-Controller.git"
+    local repo_tag="2.5.0"
+    local expected_commit="3117cd21086ef7fa982ccab776433f4ba2600aae"
+    local src_dir="$BUILD_DIR/.athena-led-src"
+    local dest_dir="$BUILD_DIR/package/emortal"
 
-    echo "正在添加 luci-app-athena-led..."
-    rm -rf "$athena_led_dir" 2>/dev/null
+    echo "正在添加 Athena LED $repo_tag..."
+    rm -rf "$src_dir" "$dest_dir/athena-led" "$dest_dir/luci-app-athena-led"
 
-    if ! git_retry clone --depth=1 "$repo_url" "$athena_led_dir"; then
-        echo "错误：从 $repo_url 克隆 luci-app-athena-led 仓库失败" >&2
-        exit 1
+    if ! git_retry clone --depth=1 --branch "$repo_tag" "$repo_url" "$src_dir"; then
+        echo "错误：从 $repo_url 克隆 Athena LED 仓库失败" >&2
+        return 1
     fi
-
-    if [ -d "$athena_led_dir" ]; then
-        chmod +x "$athena_led_dir/root/usr/sbin/athena-led"
-        chmod +x "$athena_led_dir/root/etc/init.d/athena_led"
-    else
-        echo "错误：克隆操作后未找到目录 $athena_led_dir" >&2
-        exit 1
+    if [[ "$(git -C "$src_dir" rev-parse HEAD)" != "$expected_commit" ]]; then
+        echo "错误：Athena LED 标签 $repo_tag 不再指向预期提交 $expected_commit" >&2
+        return 1
     fi
+    if ! (cd "$src_dir" && patch --batch --fuzz=0 -p1 <<'EOF'
+--- a/athena-led/Makefile
++++ b/athena-led/Makefile
+@@ -16,2 +16,2 @@
+-PKG_SOURCE_URL:=https://github.com/unraveloop/JDC-AX6600-Athena-LED-Controller/releases/download/v$(PKG_VERSION)/
+-PKG_HASH:=skip
++PKG_SOURCE_URL:=https://github.com/guangyin53222/JDC-AX6600-Athena-LED-Controller/releases/download/$(PKG_VERSION)/
++PKG_HASH:=2e6a8a54efeedbb272e67e5a0134494d5e34e062adfb5a702494946d42cf36be
+--- a/luci-app-athena-led/Makefile
++++ b/luci-app-athena-led/Makefile
+@@ -19,0 +20,1 @@
++PKG_BUILD_DEPENDS:=luci-base/host
+@@ -45,2 +46,1 @@
+-	# 如果存在中文语言包目录，则编译为 .lmo 格式
+-	[ -d ./po/zh_Hans ] && po2lmo ./po/zh_Hans/athena_led.po $(PKG_BUILD_DIR)/zh_Hans.lmo || true
++	po2lmo ./po/zh_Hans/athena_led.po $(PKG_BUILD_DIR)/zh_Hans.lmo
+@@ -66,4 +66,2 @@
+-	[ -f $(PKG_BUILD_DIR)/zh_Hans.lmo ] && { \
+-		$(INSTALL_DATA) $(PKG_BUILD_DIR)/zh_Hans.lmo $(1)/usr/lib/lua/luci/i18n/athena_led.zh-cn.lmo; \
+-		$(INSTALL_DATA) $(PKG_BUILD_DIR)/zh_Hans.lmo $(1)/usr/lib/lua/luci/i18n/athena_led.zh_Hans.lmo; \
+-	} || true
++	$(INSTALL_DATA) $(PKG_BUILD_DIR)/zh_Hans.lmo $(1)/usr/lib/lua/luci/i18n/athena_led.zh-cn.lmo
++	$(INSTALL_DATA) $(PKG_BUILD_DIR)/zh_Hans.lmo $(1)/usr/lib/lua/luci/i18n/athena_led.zh_Hans.lmo
+EOF
+    ); then
+        echo "错误：无法应用 Athena LED 构建修正" >&2
+        return 1
+    fi
+    if ! mkdir -p "$dest_dir" || ! mv "$src_dir/athena-led" "$src_dir/luci-app-athena-led" "$dest_dir/"; then
+        echo "错误：无法安装 Athena LED 软件包源码到 $dest_dir" >&2
+        return 1
+    fi
+    rm -rf "$src_dir"
 }
 
 
