@@ -36,6 +36,7 @@ sync_sparse_packages_to_feed_dir() {
     local missing_packages=()
     local clone_args=(clone --depth 1 --filter=blob:none --sparse)
     local pkg
+    local target_pkg
 
     tmp_dir=$(mktemp -d)
 
@@ -60,8 +61,12 @@ sync_sparse_packages_to_feed_dir() {
 
     for pkg in "${packages[@]}"; do
         if [ -d "$tmp_dir/$pkg" ]; then
-            rm -rf "$target_dir/$pkg"
-            mv "$tmp_dir/$pkg" "$target_dir/"
+            target_pkg="$target_dir/$pkg"
+            if ! mkdir -p "$(dirname "$target_pkg")" || ! rm -rf "$target_pkg" || ! mv "$tmp_dir/$pkg" "$target_pkg"; then
+                echo "错误：无法将 $repo_label 的 $pkg 移动到 $target_pkg" >&2
+                rm -rf "$tmp_dir"
+                return 1
+            fi
         else
             missing_packages+=("$pkg")
         fi
@@ -186,15 +191,14 @@ install_custom_feed() {
         naiveproxy shadowsocks-rust sing-box v2ray-core v2ray-geodata geoview v2ray-plugin \
         tuic-client chinadns-ng ipt2socks tcping trojan-plus simple-obfs shadowsocksr-libev \
         v2dat adguardhome luci-app-adguardhome ddns-go \
-        luci-app-ddns-go taskd luci-lib-xterm luci-lib-taskd luci-app-store quickstart \
-        luci-app-quickstart luci-app-istorex luci-app-cloudflarespeedtest netdata luci-app-netdata \
+        luci-app-ddns-go taskd luci-lib-xterm luci-lib-taskd luci-app-cloudflarespeedtest netdata luci-app-netdata \
         lucky luci-app-lucky luci-app-openclash luci-app-homeproxy luci-app-amlogic \
         oaf open-app-filter luci-app-oaf easytier luci-app-easytier \
         msd_lite luci-app-msd_lite cups luci-app-cupsd
     )
     local required_feed_dirs=(
         cups tcping v2ray-geodata luci-lib-taskd luci-app-openclash
-        luci-app-quickstart luci-app-store luci-app-homeproxy luci-app-mosdns geo2txt
+        luci-app-netwiz luci-app-homeproxy luci-app-mosdns geo2txt
         luci-app-passwall nikki luci-app-nikki mihomo-meta
         open-app-filter luci-app-oaf lucky luci-app-lucky luci-app-easytier
         luci-app-emmc-health luci-app-airoha-npu
@@ -218,6 +222,7 @@ install_custom_feed() {
     # 统一从外部仓库同步指定包，避免分散维护 feeds.conf。
     custom_feed_sources=(
         "kenzok8/small-package|https://github.com/kenzok8/small-package.git||${base_custom_feed_packages[*]}"
+        "huchd0/luci-app-netwiz|https://github.com/huchd0/luci-app-netwiz.git|master|luci-app-netwiz"
         "sbwml/luci-app-mosdns|https://github.com/sbwml/luci-app-mosdns.git|v5|mosdns luci-app-mosdns geo2txt"
         "Openwrt-Passwall/openwrt-passwall|https://github.com/Openwrt-Passwall/openwrt-passwall.git|main|luci-app-passwall"
         "nikkinikki-org/OpenWrt-nikki|https://github.com/nikkinikki-org/OpenWrt-nikki.git|main|nikki luci-app-nikki mihomo-meta"

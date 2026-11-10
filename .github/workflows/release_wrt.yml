@@ -8,7 +8,7 @@ on:
         required: true
         description: Device Model
         type: choice
-        default: jdcloud_ipq60xx_immwrt
+        default: jdcloud_ipq60xx_libwrt
         options:
           - aliyun_ap8220_immwrt
           - aliyun_ap8220_libwrt
@@ -18,13 +18,12 @@ on:
           - jdcloud_ipq60xx_immwrt
           - jdcloud_ipq60xx_libwrt
           - link_nn6000v2_immwrt
-          - linksys_mx4x00_immwrt
+          - linksys_mx4x00_libwrt
           - n1_immwrt
           - qihoo_360v6_immwrt
           - redmi_ax5_immwrt
           - redmi_ax6_immwrt
           - redmi_ax6_libwrt
-          - redmi_ax6000_immwrt21
           - zn_m2_immwrt
           - zn_m2_libwrt
           - x64_immwrt
